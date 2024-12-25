@@ -1,0 +1,73 @@
+import tkinter as tk
+from tkinter import ttk
+import requests
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from ase import Atoms
+import ase.visualize
+from rdkit.Chem import Draw
+from PIL import Image, ImageTk
+
+
+def fetch_from_pubchem(molecule):
+    url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{molecule}/property/CanonicalSMILES/JSON"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        smiles = data['PropertyTable']['Properties'][0]['CanonicalSMILES']
+        return smiles
+    except (requests.exceptions.RequestException, KeyError):
+        return None
+
+
+
+def view_molecule(molecule):
+    smiles = fetch_from_pubchem(molecule)
+    if smiles:
+        mol = Chem.MolFromSmiles(smiles)
+        if mol:
+            try:
+                mol = Chem.AddHs(mol)
+                AllChem.EmbedMolecule(mol)
+                AllChem.UFFOptimizeMolecule(mol)
+                xcart = mol.GetConformer().GetPositions()
+                symbols = [atom.GetSymbol() for atom in mol.GetAtoms()]
+                system = Atoms(positions=xcart, symbols=symbols)
+                img = Draw.MolToImage(mol)
+                img.save("molecule.png")
+                img = Image.open("molecule.png")
+                img = img.resize((300, 300), Image.Resampling.LANCZOS)
+                img_tk = ImageTk.PhotoImage(img)
+                panel = ttk.Label(root, image=img_tk)
+                panel.image = img_tk
+                panel.pack(pady=10)
+
+                print("Image displayed in Tkinter")
+
+            except Exception as e:
+                print(f"Error while processing molecule: {e}")
+                result_label.config(text="Error processing the molecule.")
+
+
+root = tk.Tk()
+root.title("Molecular Visualization")
+search_frame = ttk.Frame(root)
+search_frame.pack(pady=10)
+search_label = ttk.Label(search_frame, text="Molecule:")
+search_label.pack(side=tk.LEFT, padx=5)
+search_entry = ttk.Entry(search_frame, width=30)
+search_entry.pack(side=tk.LEFT, padx=5)
+def search_molecule():
+    molecule = search_entry.get()
+    if molecule:
+        view_molecule(molecule)
+    else:
+        result_label.config(text="Please enter a molecule name.")
+
+search_button = ttk.Button(search_frame, text="Search", command=search_molecule)
+search_button.pack(side=tk.LEFT, padx=5)
+result_label = ttk.Label(root, text="", wraplength=400)
+result_label.pack(pady=10)
+
+root.mainloop()
