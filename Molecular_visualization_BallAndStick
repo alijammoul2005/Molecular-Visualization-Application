@@ -21,7 +21,6 @@ def fetch_from_pubchem(molecule):
         return None
 
 
-
 def view_molecule(molecule):
     smiles = fetch_from_pubchem(molecule)
     if smiles:
@@ -34,17 +33,8 @@ def view_molecule(molecule):
                 xcart = mol.GetConformer().GetPositions()
                 symbols = [atom.GetSymbol() for atom in mol.GetAtoms()]
                 system = Atoms(positions=xcart, symbols=symbols)
-                img = Draw.MolToImage(mol)
-                img.save("molecule.png")
-                img = Image.open("molecule.png")
-                img = img.resize((300, 300), Image.Resampling.LANCZOS)
-                img_tk = ImageTk.PhotoImage(img)
-                panel = ttk.Label(root, image=img_tk)
-                panel.image = img_tk
-                panel.pack(pady=10)
-
-                print("Image displayed in Tkinter")
-
+                ase.visualize.view(system)
+                print("3D structure displayed.")
             except Exception as e:
                 print(f"Error while processing molecule: {e}")
                 result_label.config(text="Error processing the molecule.")
@@ -58,6 +48,7 @@ search_label = ttk.Label(search_frame, text="Molecule:")
 search_label.pack(side=tk.LEFT, padx=5)
 search_entry = ttk.Entry(search_frame, width=30)
 search_entry.pack(side=tk.LEFT, padx=5)
+
 def search_molecule():
     molecule = search_entry.get()
     if molecule:
@@ -69,5 +60,4 @@ search_button = ttk.Button(search_frame, text="Search", command=search_molecule)
 search_button.pack(side=tk.LEFT, padx=5)
 result_label = ttk.Label(root, text="", wraplength=400)
 result_label.pack(pady=10)
-
 root.mainloop()
